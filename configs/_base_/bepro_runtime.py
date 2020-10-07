@@ -10,6 +10,6 @@ log_config = dict(
 dist_params = dict(backend='nccl')
 log_level = 'INFO'
 # load_from = '/home/dmitriy.khvan/mmdetection/checkpoints/coco_bepro_ckpt.pth'
-load_from = '/home/dmitriy.khvan/mmdetection/checkpoint/crcnn_r50_bepro_origs.pth'
+load_from = ''
 resume_from = None
 workflow = [('train', 1), ('val', 1)]
