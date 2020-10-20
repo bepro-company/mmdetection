@@ -1,15 +1,17 @@
 import warnings
+
 import matplotlib.pyplot as plt
 import mmcv
+import numpy as np
 import torch
-from mmcv.ops import RoIAlign, RoIPool
+from mmcv.ops import RoIPool
 from mmcv.parallel import collate, scatter
 from mmcv.runner import load_checkpoint
 
 from mmdet.core import get_classes
 from mmdet.datasets.pipelines import Compose
 from mmdet.models import build_detector
-from mmdet.utils.gpu_augmentation import Augmentation
+
 
 def init_detector(config, checkpoint=None, device='cuda:0'):
     """Initialize a detector from config file.
@@ -87,44 +89,34 @@ def inference_detector(model, img):
     """
     cfg = model.cfg
     device = next(model.parameters()).device  # model device
-    
-    augmentation_pipeline = Augmentation()
-    frame_tensor = augmentation_pipeline(img, cfg)
-    
-    if model.img_metas == None:
-        # build the data pipeline
-        test_pipeline = [LoadImage()] + cfg.data.test.pipeline[1:]
-        test_pipeline = Compose(test_pipeline)
-        # prepare data
+    # prepare data
+    if isinstance(img, np.ndarray):
+        # directly add img
         data = dict(img=img)
-        data = test_pipeline(data)
-        data = collate([data], samples_per_gpu=1)
-        
-        if next(model.parameters()).is_cuda:
-            # scatter to specified GPU
-            data = scatter(data, [device])[0]
-        else:
-            # Use torchvision ops for CPU mode instead
-            for m in model.modules():
-                if isinstance(m, (RoIPool, RoIAlign)):
-                    if not m.aligned:
-                        # aligned=False is not implemented on CPU
-                        # set use_torchvision on-the-fly
-                        m.use_torchvision = True
-            warnings.warn('We set use_torchvision=True in CPU mode.')
-            # just get the actual data from DataContainer
-            data['img_metas'] = data['img_metas'][0].data
-        model.img_metas = data['img_metas']
-        
-    # Re-Use initialized dictionary containing initialized img metas
-    data = dict(img_metas = model.img_metas)
-    # Override image tensor with current augmented frame
-    data["img"] = [frame_tensor]
+        cfg = cfg.copy()
+        # set loading pipeline type
+        cfg.data.test.pipeline[0].type = 'LoadImageFromWebcam'
+    else:
+        # add information into dict
+        data = dict(img_info=dict(filename=img), img_prefix=None)
+    # build the data pipeline
+    test_pipeline = Compose(cfg.data.test.pipeline)
+    data = test_pipeline(data)
+    data = collate([data], samples_per_gpu=1)
+    if next(model.parameters()).is_cuda:
+        # scatter to specified GPU
+        data = scatter(data, [device])[0]
+    else:
+        for m in model.modules():
+            assert not isinstance(
+                m, RoIPool
+            ), 'CPU inference with RoIPool is not supported currently.'
+        # just get the actual data from DataContainer
+        data['img_metas'] = data['img_metas'][0].data
 
     # forward the model
     with torch.no_grad():
-        result = model(return_loss=False, rescale=True, **data)
-        
+        result = model(return_loss=False, rescale=True, **data)[0]
     return result
 
 
@@ -142,10 +134,9 @@ async def async_inference_detector(model, img):
     cfg = model.cfg
     device = next(model.parameters()).device  # model device
     # build the data pipeline
-    test_pipeline = [LoadImage()] + cfg.data.test.pipeline[1:]
-    test_pipeline = Compose(test_pipeline)
+    test_pipeline = Compose(cfg.data.test.pipeline)
     # prepare data
-    data = dict(img=img)
+    data = dict(img_info=dict(filename=img), img_prefix=None)
     data = test_pipeline(data)
     data = scatter(collate([data], samples_per_gpu=1), [device])[0]
 
