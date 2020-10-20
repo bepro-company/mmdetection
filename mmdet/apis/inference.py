@@ -11,6 +11,7 @@ from mmcv.runner import load_checkpoint
 from mmdet.core import get_classes
 from mmdet.datasets.pipelines import Compose
 from mmdet.models import build_detector
+from mmdet.utils.gpu_augmentation import Augmentation
 
 
 def init_detector(config, checkpoint=None, device='cuda:0'):
@@ -89,30 +90,41 @@ def inference_detector(model, img):
     """
     cfg = model.cfg
     device = next(model.parameters()).device  # model device
-    # prepare data
-    if isinstance(img, np.ndarray):
-        # directly add img
-        data = dict(img=img)
-        cfg = cfg.copy()
-        # set loading pipeline type
-        cfg.data.test.pipeline[0].type = 'LoadImageFromWebcam'
-    else:
-        # add information into dict
-        data = dict(img_info=dict(filename=img), img_prefix=None)
-    # build the data pipeline
-    test_pipeline = Compose(cfg.data.test.pipeline)
-    data = test_pipeline(data)
-    data = collate([data], samples_per_gpu=1)
-    if next(model.parameters()).is_cuda:
-        # scatter to specified GPU
-        data = scatter(data, [device])[0]
-    else:
-        for m in model.modules():
-            assert not isinstance(
-                m, RoIPool
-            ), 'CPU inference with RoIPool is not supported currently.'
-        # just get the actual data from DataContainer
-        data['img_metas'] = data['img_metas'][0].data
+    
+    augmentation_pipeline = Augmentation()
+    frame_tensor = augmentation_pipeline(img, cfg)
+    
+    if model.img_metas == None:
+        # prepare data
+        if isinstance(img, np.ndarray):
+            # directly add img
+            data = dict(img=img)
+            cfg = cfg.copy()
+            # set loading pipeline type
+            cfg.data.test.pipeline[0].type = 'LoadImageFromWebcam'
+        else:
+            # add information into dict
+            data = dict(img_info=dict(filename=img), img_prefix=None)
+        # build the data pipeline
+        test_pipeline = Compose(cfg.data.test.pipeline)
+        data = test_pipeline(data)
+        data = collate([data], samples_per_gpu=1)
+        if next(model.parameters()).is_cuda:
+            # scatter to specified GPU
+            data = scatter(data, [device])[0]
+        else:
+            for m in model.modules():
+                assert not isinstance(
+                    m, RoIPool
+                ), 'CPU inference with RoIPool is not supported currently.'
+            # just get the actual data from DataContainer
+            data['img_metas'] = data['img_metas'][0].data
+        model.img_metas = data['img_metas']
+            
+    # Re-Use initialized dictionary containing initialized img metas
+    data = dict(img_metas = model.img_metas)
+    # Override image tensor with current augmented frame
+    data["img"] = [frame_tensor]
 
     # forward the model
     with torch.no_grad():
