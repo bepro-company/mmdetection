@@ -3,10 +3,7 @@
 # workon bepro-video-util (GCP virtualenv)
 
 # below will be added to above venv
-pip install torch==1.3.1 torchvision==0.4.2
-pip install cython==0.29.21
-pip install pycocotools==2.0.0
-pip install mmcv-full==1.0.5
+pip install -r requirements/bepro.txt
 
 mkdir data
 
