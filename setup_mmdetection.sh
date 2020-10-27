@@ -3,6 +3,7 @@
 # workon bepro-video-util (GCP virtualenv)
 
 # below will be added to above venv
+pip install -r requirements/build.txt
 pip install -r requirements/bepro.txt
 
 mkdir data
