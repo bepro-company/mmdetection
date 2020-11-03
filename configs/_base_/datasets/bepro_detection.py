@@ -18,7 +18,7 @@ test_pipeline = [
     dict(
         type='MultiScaleFlipAug',
         # img_scale=(3072, 1728),
-        img_scale=(4096, 1200),
+        img_scale=(4096, 900),
         flip=False,
         transforms=[
             dict(type='Resize', keep_ratio=True),
@@ -30,17 +30,17 @@ test_pipeline = [
         ])
 ]
 data = dict(
-    samples_per_gpu=1,
-    workers_per_gpu=2,
+    samples_per_gpu=2,
+    workers_per_gpu=4,
     train=dict(
         type=dataset_type,
-       ann_file='/home/dmitriy.khvan/mmdetection/data/stitched_images_annotation/ann_file.txt',
+       ann_file='/home/bepro/mmdetection/data/bepro/ann_file_stitching.txt',
     #    ann_file='/home/dmitriy.khvan/mmdetection/data/bepro/ann_file.txt',
         img_prefix='',
         pipeline=train_pipeline),
     val=dict(
         type=dataset_type,
-        ann_file='/home/dmitriy.khvan/mmdetection/data/stitched_images_annotation/val_file.txt',
+        ann_file='/home/bepro/mmdetection/data/bepro/val_file_stitching.txt',
         # ann_file='/home/dmitriy.khvan/mmdetection/data/bepro/val_file.txt',
         img_prefix='',
         pipeline=test_pipeline),

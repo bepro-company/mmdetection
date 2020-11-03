@@ -1,7 +1,8 @@
 _base_ = [
-    '../_base_/datasets/coco_detection.py',
-    '../_base_/schedules/schedule_1x.py', '../_base_/default_runtime.py'
+    '../_base_/datasets/bepro_detection.py',
+    '../_base_/schedules/schedule_1x.py', '../_base_/bepro_runtime.py'
 ]
+
 model = dict(
     type='GFL',
     pretrained='torchvision://resnet50',
@@ -23,6 +24,7 @@ model = dict(
         num_outs=5),
     bbox_head=dict(
         type='GFLHead',
+        # num_classes=3,
         num_classes=80,
         in_channels=256,
         stacked_convs=4,
@@ -50,8 +52,8 @@ train_cfg = dict(
 test_cfg = dict(
     nms_pre=1000,
     min_bbox_size=0,
-    score_thr=0.05,
-    nms=dict(type='nms', iou_threshold=0.6),
+    score_thr=0.60,
+    nms=dict(type='nms', iou_threshold=0.7),
     max_per_img=100)
 # optimizer
 optimizer = dict(type='SGD', lr=0.001, momentum=0.9, weight_decay=0.0001)

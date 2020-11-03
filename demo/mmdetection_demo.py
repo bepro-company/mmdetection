@@ -22,10 +22,11 @@ def process_video_crcnn(frame_offset, frame_count, config_file, checkpoint_file,
     model = init_detector(config_file, checkpoint_file, device='cuda:0')
     model.cfg.data.test.pipeline[1]['img_scale'] = video.resolution
     
+    # print (model)
     print('[config] img_scale: {}'.format(model.cfg.data.test.pipeline[1]['img_scale']))
-    print('[config] score threshold: {}'.format(model.cfg.test_cfg['rcnn']['score_thr']))
-    print('[config] iou threshold: {}'.format(model.cfg.test_cfg['rcnn']['nms']['iou_threshold']))
-    print('[config] rpn nms threshold: {}'.format(model.cfg.test_cfg['rpn']['nms_thr']))
+    # print('[config] score threshold: {}'.format(model.cfg.test_cfg['rcnn']['score_thr']))
+    # print('[config] iou threshold: {}'.format(model.cfg.test_cfg['rcnn']['nms']['iou_threshold']))
+    # print('[config] rpn nms threshold: {}'.format(model.cfg.test_cfg['rpn']['nms_thr']))
 
     now = datetime.now()
     date_time = now.strftime("%m%d%Y_%H%M%S")
