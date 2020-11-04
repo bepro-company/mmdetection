@@ -20,7 +20,7 @@ def process_video_crcnn(frame_offset, frame_count, config_file, checkpoint_file,
 
     video = mmcv.VideoReader(video_path)
     model = init_detector(config_file, checkpoint_file, device='cuda:0')
-    model.cfg.data.test.pipeline[1]['img_scale'] = video.resolution
+    # model.cfg.data.test.pipeline[1]['img_scale'] = video.resolution
     
     # print (model)
     print('[config] img_scale: {}'.format(model.cfg.data.test.pipeline[1]['img_scale']))
@@ -51,6 +51,8 @@ def process_video_crcnn(frame_offset, frame_count, config_file, checkpoint_file,
             print('[DBG] Empty frame received!')
             break
 
+        frame = cv2.resize(frame, (3600, 600))
+
         start_time = time.time()
         result = inference_detector(model, frame)
         end_time = time.time()
@@ -80,6 +82,7 @@ def process_video_crcnn(frame_offset, frame_count, config_file, checkpoint_file,
                     continue
 
                 d = (bb[0], bb[1], bb[2], bb[3], bb[4])
+                # frame_res = cv2.resize(frame, (3600,600))
                 cv2.rectangle(frame, (int(d[0]), int(d[1])), (int(d[2]), int(d[3])), (255,0,0), 2)
                 log_file.write(str(f_number)+","+str(d[0])+","+str(d[1])+","+str(d[2])+","+str(d[3])+","+str(d[4]) + "\n")
 
@@ -89,8 +92,9 @@ def process_video_crcnn(frame_offset, frame_count, config_file, checkpoint_file,
             end_process = time.time()
             print('[DBG][{}/{}] frame inference time: {} {}, elapsed time: {} {}'.format(f_number+slice_start, slice_end-1, end_time-start_time, '.s', (end_process-start_process), '.s'))
 
-        if f_number == 1 or f_number % 3000 == 0:
+        if f_number == 1 or f_number % 300 == 0:
             dump_path = "./demo/dump/dump-%06d.jpg" % (f_number)
+            # print (frame_res.shape)
             cv2.imwrite(dump_path, frame)
             log_file.flush()
             os.fsync(log_file.fileno())

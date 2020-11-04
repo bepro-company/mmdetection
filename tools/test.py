@@ -145,7 +145,8 @@ def main():
         init_dist(args.launcher, **cfg.dist_params)
 
     # build the dataloader
-    samples_per_gpu = cfg.data.test.pop('samples_per_gpu', 1)
+    samples_per_gpu = cfg.data.test.pop('samples_per_gpu', 16)
+    
     if samples_per_gpu > 1:
         # Replace 'ImageToTensor' to 'DefaultFormatBundle'
         cfg.data.test.pipeline = replace_ImageToTensor(cfg.data.test.pipeline)

@@ -51,7 +51,7 @@ class BeproDataset(CustomDataset):
                         height = int(size.find('height').text)
                         img_infos.append(dict(id=img_id, filename=filename, width=width, height=height))
                     else:
-                        print('[DEBUG] xml missing: ' + xml_path)
+                        # print('[DEBUG] xml missing: ' + xml_path)
                         continue
 
         print(len(img_infos))

@@ -17,21 +17,21 @@ test_pipeline = [
     dict(type='LoadImageFromFile'),
     dict(
         type='MultiScaleFlipAug',
-        # img_scale=(3072, 1728),
-        img_scale=(4096, 900),
+        img_scale=(3600, 600),
         flip=False,
         transforms=[
             dict(type='Resize', keep_ratio=True),
             dict(type='RandomFlip'),
             dict(type='Normalize', **img_norm_cfg),
             dict(type='Pad', size_divisor=32),
-            dict(type='ImageToTensor', keys=['img']),
+            # dict(type='ImageToTensor', keys=['img']),
+            dict(type='DefaultFormatBundle'),
             dict(type='Collect', keys=['img']),
         ])
 ]
 data = dict(
     samples_per_gpu=2,
-    workers_per_gpu=4,
+    workers_per_gpu=2,
     train=dict(
         type=dataset_type,
        ann_file='/home/bepro/mmdetection/data/bepro/ann_file_stitching.txt',
@@ -46,7 +46,7 @@ data = dict(
         pipeline=test_pipeline),
     test=dict(
         type=dataset_type,
-        ann_file=data_root + 'annotations/instances_val2017.json',
-        img_prefix=data_root + 'val2017/',
+        ann_file='/home/bepro/mmdetection/data/bepro/test_file_stitching.txt',
+        img_prefix='',
         pipeline=test_pipeline))
 evaluation = dict(interval=1)
