@@ -80,7 +80,7 @@ def process_video_crcnn(frame_offset, frame_count, config_file, checkpoint_file,
 
                 d = (bb[0], bb[1], bb[2], bb[3], bb[4])
 
-                if (int(d[2])-int(d[0])) < 1 or (int(d[3])-int(d[1])) < 1:
+                if (d[2]-d[0]) <= 0. or (d[3]-d[1]) <= 0.:
                     print ('[DBG] wrong size of a box at frame: %d' % (f_number))
                     continue
 
