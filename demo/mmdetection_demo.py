@@ -160,5 +160,5 @@ if __name__ == '__main__':
     frame_offset = sys.argv[4]
     frame_count = sys.argv[5]
 
-    # python demo/mmdetection_demo.py PVO4R8Dh-trim.mp4 configs/cascade_rcnn/cascade_rcnn_r50_fpn_1x_bepro.py checkpoint/crcnn_r50_bepro_stitch.pth 0 87150 /home/dmitriy.khvan/tmp/   
+    # python demo/mmdetection_demo.py E1857XB7-trim.mp4 configs/cascade_rcnn/cascade_rcnn_r34_rpn_1x_bepro.py checkpoint/cascade_rcnn_r34_fpn_stitched_scale6_64f_3c.pth 0 2000
     process_video_crcnn(frame_offset, frame_count, config_file, checkpoint_file, data_dir)
