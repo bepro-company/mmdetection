@@ -42,11 +42,11 @@ def process_video_crcnn(frame_offset, frame_count, config_file, checkpoint_file,
 
     last_boxes = []
 
-    parity = False
-    if slice_start %2 != 0 and (slice_end-1) % 2 != 0: # odd - odd
-        parity = True
-    elif slice_start %2 == 0 and (slice_end-1) % 2 == 0: # even - even
-        parity = True
+    # parity = False
+    # if slice_start %2 != 0 and (slice_end-1) % 2 != 0: # odd - odd
+    #     parity = True
+    # elif slice_start %2 == 0 and (slice_end-1) % 2 == 0: # even - even
+    #     parity = True
 
     for index in range(slice_start,slice_end):
         frame = video[index]
@@ -54,15 +54,15 @@ def process_video_crcnn(frame_offset, frame_count, config_file, checkpoint_file,
         # skip frame
         # note: if index of last frame in chunk is even, throw away odd indexes and vice versa
         # frame of last index is needed for inter-chunk connection
-        if parity:
-            if (index-slice_start) % 2 != 0:
-                continue
-        else:
-            # instead of skipping 0 index skip 1 index
-            if (index-slice_start) != 0 and (index-slice_start) % 2 == 0:
-                continue
-            if (index-slice_start) == 1:
-                continue
+        # if parity:
+        #     if (index-slice_start) % 2 != 0:
+        #         continue
+        # else:
+        #     # instead of skipping 0 index skip 1 index
+        #     if (index-slice_start) != 0 and (index-slice_start) % 2 == 0:
+        #         continue
+        #     if (index-slice_start) == 1:
+        #         continue
 
         f_number = f_number + 1
         
