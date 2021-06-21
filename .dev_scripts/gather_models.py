@@ -4,21 +4,24 @@ import json
 import os.path as osp
 import shutil
 import subprocess
+from collections import OrderedDict
 
 import mmcv
 import torch
+import yaml
 
-# build schedule look-up table to automatically find the final model
-SCHEDULES_LUT = {
-    '_1x_': 12,
-    '_2x_': 24,
-    '_20e_': 20,
-    '_3x_': 36,
-    '_4x_': 48,
-    '_24e_': 24,
-    '_6x_': 73
-}
-RESULTS_LUT = ['bbox_mAP', 'segm_mAP']
+
+def ordered_yaml_dump(data, stream=None, Dumper=yaml.SafeDumper, **kwds):
+
+    class OrderedDumper(Dumper):
+        pass
+
+    def _dict_representer(dumper, data):
+        return dumper.represent_mapping(
+            yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG, data.items())
+
+    OrderedDumper.add_representer(OrderedDict, _dict_representer)
+    return yaml.dump(data, stream, OrderedDumper, **kwds)
 
 
 def process_checkpoint(in_file, out_file):
@@ -28,7 +31,10 @@ def process_checkpoint(in_file, out_file):
         del checkpoint['optimizer']
     # if it is necessary to remove some sensitive data in checkpoint['meta'],
     # add the code here.
-    torch.save(checkpoint, out_file)
+    if torch.__version__ >= '1.6':
+        torch.save(checkpoint, out_file, _use_new_zipfile_serialization=False)
+    else:
+        torch.save(checkpoint, out_file)
     sha = subprocess.check_output(['sha256sum', out_file]).decode()
     final_file = out_file.rstrip('.pth') + '-{}.pth'.format(sha[:8])
     subprocess.Popen(['mv', out_file, final_file])
@@ -36,16 +42,19 @@ def process_checkpoint(in_file, out_file):
 
 
 def get_final_epoch(config):
-    if config.find('grid_rcnn') != -1 and config.find('2x') != -1:
-        # grid_rcnn 2x trains 25 epochs
-        return 25
-
-    for schedule_name, epoch_num in SCHEDULES_LUT.items():
-        if config.find(schedule_name) != -1:
-            return epoch_num
+    cfg = mmcv.Config.fromfile('./configs/' + config)
+    return cfg.runner.max_epochs
 
 
-def get_final_results(log_json_path, epoch):
+def get_real_epoch(config):
+    cfg = mmcv.Config.fromfile('./configs/' + config)
+    epoch = cfg.runner.max_epochs
+    if cfg.data.train.type == 'RepeatDataset':
+        epoch *= cfg.data.train.times
+    return epoch
+
+
+def get_final_results(log_json_path, epoch, results_lut):
     result_dict = dict()
     with open(log_json_path, 'r') as f:
         for line in f.readlines():
@@ -59,9 +68,73 @@ def get_final_results(log_json_path, epoch):
             if log_line['mode'] == 'val' and log_line['epoch'] == epoch:
                 result_dict.update({
                     key: log_line[key]
-                    for key in RESULTS_LUT if key in log_line
+                    for key in results_lut if key in log_line
                 })
                 return result_dict
+
+
+def get_dataset_name(config):
+    # If there are more dataset, add here.
+    name_map = dict(
+        CityscapesDataset='Cityscapes',
+        CocoDataset='COCO',
+        DeepFashionDataset='Deep Fashion',
+        LVISV05Dataset='LVIS v0.5',
+        LVISV1Dataset='LVIS v1',
+        VOCDataset='Pascal VOC',
+        WIDERFaceDataset='WIDER Face')
+    cfg = mmcv.Config.fromfile('./configs/' + config)
+    return name_map[cfg.dataset_type]
+
+
+def convert_model_info_to_pwc(model_infos):
+    pwc_files = {}
+    for model in model_infos:
+        cfg_folder_name = osp.split(model['config'])[-2]
+        pwc_model_info = OrderedDict()
+        pwc_model_info['Name'] = osp.split(model['config'])[-1].split('.')[0]
+        pwc_model_info['In Collection'] = 'Please fill in Collection name'
+        pwc_model_info['Config'] = osp.join('configs', model['config'])
+
+        # get metadata
+        memory = round(model['results']['memory'] / 1024, 1)
+        epochs = get_real_epoch(model['config'])
+        meta_data = OrderedDict()
+        meta_data['Training Memory (GB)'] = memory
+        meta_data['Epochs'] = epochs
+        pwc_model_info['Metadata'] = meta_data
+
+        # get dataset name
+        dataset_name = get_dataset_name(model['config'])
+
+        # get results
+        results = []
+        # if there are more metrics, add here.
+        if 'bbox_mAP' in model['results']:
+            metric = round(model['results']['bbox_mAP'] * 100, 1)
+            results.append(
+                OrderedDict(
+                    Task='Object Detection',
+                    Dataset=dataset_name,
+                    Metrics={'box AP': metric}))
+        if 'segm_mAP' in model['results']:
+            metric = round(model['results']['segm_mAP'] * 100, 1)
+            results.append(
+                OrderedDict(
+                    Task='Instance Segmentation',
+                    Dataset=dataset_name,
+                    Metrics={'mask AP': metric}))
+        pwc_model_info['Results'] = results
+
+        link_string = 'https://download.openmmlab.com/mmdetection/v2.0/'
+        link_string += '{}/{}'.format(model['config'].rstrip('.py'),
+                                      osp.split(model['model_path'])[-1])
+        pwc_model_info['Weights'] = link_string
+        if cfg_folder_name in pwc_files:
+            pwc_files[cfg_folder_name].append(pwc_model_info)
+        else:
+            pwc_files[cfg_folder_name] = [pwc_model_info]
+    return pwc_files
 
 
 def parse_args():
@@ -107,10 +180,18 @@ def main():
         if not osp.exists(model_path):
             continue
 
-        # get logs
-        log_json_path = glob.glob(osp.join(exp_dir, '*.log.json'))[0]
-        log_txt_path = glob.glob(osp.join(exp_dir, '*.log'))[0]
-        model_performance = get_final_results(log_json_path, final_epoch)
+        # get the latest logs
+        log_json_path = list(
+            sorted(glob.glob(osp.join(exp_dir, '*.log.json'))))[-1]
+        log_txt_path = list(sorted(glob.glob(osp.join(exp_dir, '*.log'))))[-1]
+        cfg = mmcv.Config.fromfile('./configs/' + used_config)
+        results_lut = cfg.evaluation.metric
+        if not isinstance(results_lut, list):
+            results_lut = [results_lut]
+        # case when using VOC, the evaluation key is only 'mAP'
+        results_lut = [key + '_mAP' for key in results_lut if 'mAP' not in key]
+        model_performance = get_final_results(log_json_path, final_epoch,
+                                              results_lut)
 
         if model_performance is None:
             continue
@@ -165,6 +246,11 @@ def main():
     models = dict(models=publish_model_infos)
     print(f'Totally gathered {len(publish_model_infos)} models')
     mmcv.dump(models, osp.join(models_out, 'model_info.json'))
+
+    pwc_files = convert_model_info_to_pwc(publish_model_infos)
+    for name in pwc_files:
+        with open(osp.join(models_out, name + '_metafile.yml'), 'w') as f:
+            ordered_yaml_dump(pwc_files[name], f, encoding='utf-8')
 
 
 if __name__ == '__main__':
