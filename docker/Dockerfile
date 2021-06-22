@@ -31,3 +31,5 @@ ENV FORCE_CUDA="1"
 RUN pip install -r requirements/build.txt
 RUN pip install --no-cache-dir -e .
 
+RUN git clone https://github.com/bepro-company/FairMOT.git
+

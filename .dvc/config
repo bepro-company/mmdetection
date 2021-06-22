@@ -1,0 +1,5 @@
+
+[core]
+    remote = bepro-dvc
+['remote "bepro-dvc"']
+    url = gs://bepro-dvc
