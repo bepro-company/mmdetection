@@ -25,11 +25,13 @@ CMD /bin/bash
 RUN curl -sSL https://sdk.cloud.google.com | bash
 ENV PATH $PATH:/root/google-cloud-sdk/bin
 
-RUN git clone https://github.com/bepro-company/mmdetection.git -b dev_fork_2106 /mmdetection
+# RUN git clone https://github.com/bepro-company/mmdetection.git -b dev_fork_2106 /mmdetection
+
+RUN git clone -b dev_fork_2106 https://github.com/bepro-company/mmdetection.git /mmdetection
+
 WORKDIR /mmdetection
 ENV FORCE_CUDA="1"
 RUN pip install -r requirements/build.txt
 RUN pip install --no-cache-dir -e .
 
-RUN git clone https://github.com/bepro-company/FairMOT.git
-
+RUN pip install dvc[gs]
