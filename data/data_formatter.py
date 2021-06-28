@@ -3,10 +3,12 @@ import mmcv
 
 import os.path
 import cv2
+import sys
 
 from pathlib import Path
 
-with open('./train/bepro.json') as json_file:
+# with open('./train/bepro.json') as json_file:
+with open('./%s/%s.json' % (sys.argv[1], sys.argv[2])) as json_file:
     data = json.load(json_file)
 
 images = []
@@ -21,7 +23,7 @@ for match_name,img_list in data["train"].items():
         for path in f:
             print ('processing image %s' % path.strip())
 
-            img_path = os.path.join('/mmdetection/data/train/', path.strip())
+            img_path = os.path.join('/mmdetection/data/%s/' % sys.argv[1], path.strip())
             # img_path = os.path.join(data["root"], path.strip())
             image = mmcv.imread(img_path)
             height, width = image.shape[:2]
@@ -39,7 +41,7 @@ for match_name,img_list in data["train"].items():
             lbl_path_lst[-1] = '%s.txt' % lbl_filename
             lbl_path = '/'.join(lbl_path_lst)
             
-            print ('processing label file %s' % lbl_path)
+            # print ('processing label file %s' % lbl_path)
 
             assert os.path.isfile(lbl_path) == True 
 
@@ -47,17 +49,18 @@ for match_name,img_list in data["train"].items():
                 for lb in fl:
                     lb_lst = lb.strip().split(' ')
 
-                    x, y, bw, bh = float(lb_lst[2]), float(lb_lst[3]), float(lb_lst[4]), float(lb_lst[5])
+                    xc, yc, bw, bh = float(lb_lst[2]), float(lb_lst[3]), float(lb_lst[4]), float(lb_lst[5])
 
-                    x *= width 
-                    y *= height 
+                    xc *= width 
+                    yc *= height 
                     bw *= width 
                     bh *= height
 
-                    print (x,y,bw,bh)
+                    x, y = xc-bw/2, yc-bh/2
+                    # print (x,y,bw,bh)
 
                     if 0:
-                        dump_path = "./d_%s.jpg" % (lbl_filename)
+                        dump_path = "./%s_%s.jpg" % (match_name, lbl_filename)
                         cv2.rectangle(image, (int(x), int(y)), (int(x+bw), int(y+bh)), (255,0,0), 2)
                         cv2.imwrite(dump_path, image)
 
@@ -81,7 +84,7 @@ coco_format_json = dict(
     annotations=annotations,
     categories=[{'id':0, 'name': 'player'}])
 
-Path('./train/labels_coco/').mkdir(parents=True, exist_ok=True)
-mmcv.dump(coco_format_json, './train/labels_coco/%s.json' % ('bepro_coco'))
+Path('./%s/labels_coco/' % sys.argv[1]).mkdir(parents=True, exist_ok=True)
+mmcv.dump(coco_format_json, './%s/labels_coco/%s.json' % (sys.argv[1], 'bepro_coco'))
 
 
