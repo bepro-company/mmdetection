@@ -7,6 +7,11 @@ import sys
 
 from pathlib import Path
 
+
+# argv[1] - name of train folder
+# argv[2] - name of input train json
+# argv[3] - name of output coco format json
+
 # with open('./train/bepro.json') as json_file:
 with open('./%s/%s.json' % (sys.argv[1], sys.argv[2])) as json_file:
     data = json.load(json_file)
@@ -85,6 +90,6 @@ coco_format_json = dict(
     categories=[{'id':0, 'name': 'player'}])
 
 Path('./%s/labels_coco/' % sys.argv[1]).mkdir(parents=True, exist_ok=True)
-mmcv.dump(coco_format_json, './%s/labels_coco/%s.json' % (sys.argv[1], 'bepro_coco'))
+mmcv.dump(coco_format_json, './%s/labels_coco/%s.json' % (sys.argv[1], sys.argv[3]))
 
 
