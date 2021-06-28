@@ -4,20 +4,25 @@ import mmcv
 import os.path
 import cv2
 
+from pathlib import Path
+
 with open('./train/bepro.json') as json_file:
     data = json.load(json_file)
 
-annotations = []
 images = []
 obj_count = 0
 idx = 0
+annotations = []
 
 for match_name,img_list in data["train"].items():
-    print (match_name)
+    print ('processing match %s' % match_name)
 
     with open(img_list) as f:
         for path in f:
+            print ('processing image %s' % path.strip())
+
             filename = '_'.join(path.strip().split('/')[1:])
+
             img_path = os.path.join(data["root"], path.strip())
             image = mmcv.imread(img_path)
             height, width = image.shape[:2]
@@ -34,11 +39,10 @@ for match_name,img_list in data["train"].items():
             lbl_path_lst[3] = 'labels_with_ids'
             lbl_path_lst[-1] = '%s.txt' % lbl_filename
             lbl_path = '/'.join(lbl_path_lst)
-            print (lbl_path)
+            
+            print ('processing label file %s' % lbl_path)
 
-            bboxes = []
-            labels = []
-            masks = []
+            assert os.path.isfile(lbl_path) == True 
 
             with open(lbl_path) as fl:
                 for lb in fl:
@@ -51,6 +55,8 @@ for match_name,img_list in data["train"].items():
                     bw *= width 
                     bh *= height
 
+                    print (x,y,bw,bh)
+
                     if 0:
                         dump_path = "./d_%s.jpg" % (lbl_filename)
                         cv2.rectangle(image, (int(x), int(y)), (int(x+bw), int(y+bh)), (255,0,0), 2)
@@ -61,20 +67,22 @@ for match_name,img_list in data["train"].items():
                         id=obj_count,
                         category_id=0,
                         bbox=[x, y, bw, bh],
-                        area=bw * bh,
+                        area=bw*bh,
                         segmentation=[],
                         iscrowd=0)
 
                     annotations.append(data_anno)
                     obj_count += 1
 
+            # assert len(annotations) > 0
             idx+=1
 
-            coco_format_json = dict(
-                images=images,
-                annotations=annotations,
-                categories=[{'id':0, 'name': 'player'}])
-        
-            mmcv.dump(coco_format_json, out_file)
+coco_format_json = dict(
+    images=images,
+    annotations=annotations,
+    categories=[{'id':0, 'name': 'player'}])
+
+Path('./train/labels_coco/').mkdir(parents=True, exist_ok=True)
+mmcv.dump(coco_format_json, './train/labels_coco/%s.json' % ('bepro_coco'))
 
 
