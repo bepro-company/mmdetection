@@ -21,22 +21,21 @@ for match_name,img_list in data["train"].items():
         for path in f:
             print ('processing image %s' % path.strip())
 
-            filename = '_'.join(path.strip().split('/')[1:])
-
-            img_path = os.path.join(data["root"], path.strip())
+            img_path = os.path.join('/mmdetection/data/train/', path.strip())
+            # img_path = os.path.join(data["root"], path.strip())
             image = mmcv.imread(img_path)
             height, width = image.shape[:2]
 
             images.append(dict(
                 id=idx,
-                file_name=filename,
+                file_name=img_path,
                 height=height,
                 width=width))
             
             # reading label 
             lbl_path_lst = img_path.split('/')
             lbl_filename = lbl_path_lst[-1].split('.')[0]
-            lbl_path_lst[3] = 'labels_with_ids'
+            lbl_path_lst[4] = 'labels_with_ids'
             lbl_path_lst[-1] = '%s.txt' % lbl_filename
             lbl_path = '/'.join(lbl_path_lst)
             
