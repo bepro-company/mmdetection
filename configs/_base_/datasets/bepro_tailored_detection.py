@@ -35,17 +35,18 @@ test_pipeline = [
 
 data = dict(
     samples_per_gpu=1,
-    workers_per_gpu=2,
+    workers_per_gpu=1,
     train=dict(
         type=dataset_type,
-        ann_file=data_root + '/mmdetection/data/train_clean/labels_coco/bepro_coco_train.json',
+        ann_file=data_root + '/mmdetection/data/train_clean/labels_coco/bepro_ann_train.json',
         img_prefix='',
         pipeline=train_pipeline),
     val=dict(
         type=dataset_type,
-        ann_file=data_root + 'annotations/instances_val2017.json',
-        img_prefix=data_root + 'val2017/',
+        ann_file=data_root + '/mmdetection/data/train_clean/labels_coco/bepro_ann_val.json',
+        img_prefix='',
         pipeline=test_pipeline),
+
     test=dict(
         type=dataset_type,
         ann_file=data_root + 'annotations/instances_val2017.json',
