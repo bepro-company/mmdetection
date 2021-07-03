@@ -6,7 +6,7 @@ import torch
 from mmcv.parallel import MMDataParallel, MMDistributedDataParallel
 from mmcv.runner import (HOOKS, DistSamplerSeedHook, EpochBasedRunner,
                          Fp16OptimizerHook, OptimizerHook, build_optimizer,
-                         build_runner)
+                         build_runner, WandbLoggerHook)
 from mmcv.utils import build_from_cfg
 
 from mmdet.core import DistEvalHook, EvalHook
@@ -125,6 +125,12 @@ def train_detector(model,
     runner.register_training_hooks(cfg.lr_config, optimizer_config,
                                    cfg.checkpoint_config, cfg.log_config,
                                    cfg.get('momentum_config', None))
+
+    # registed wnb hooks
+    keywords = {'config': cfg, 'project': 'mmdetection_train', 'entity': 'dimahwang88'}
+    hook_wnb = WandbLoggerHook(init_kwargs=keywords,interval=20)
+    runner.register_hook(hook_wnb)
+    
     if distributed:
         if isinstance(runner, EpochBasedRunner):
             runner.register_hook(DistSamplerSeedHook())
