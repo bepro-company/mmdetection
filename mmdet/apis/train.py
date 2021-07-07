@@ -128,8 +128,7 @@ def train_detector(model,
 
     # registed wnb hooks
     keywords = {'config': cfg, 'project': 'mmdetection_train', 'entity': 'dimahwang88'}
-    hook_wnb = WandbLoggerHook(init_kwargs=keywords,interval=20)
-    runner.register_hook(hook_wnb)
+    hook_wnb = WandbLoggerHook(init_kwargs=keywords)
     
     if distributed:
         if isinstance(runner, EpochBasedRunner):
@@ -168,6 +167,8 @@ def train_detector(model,
             priority = hook_cfg.pop('priority', 'NORMAL')
             hook = build_from_cfg(hook_cfg, HOOKS)
             runner.register_hook(hook, priority=priority)
+
+    runner.register_hook(hook_wnb)
 
     if cfg.resume_from:
         runner.resume(cfg.resume_from)
