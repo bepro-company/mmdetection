@@ -1,0 +1,5 @@
+outs:
+- md5: 6da871a5929638221422bd0484292f17.dir
+  size: 180469711
+  nfiles: 2
+  path: labels_coco
